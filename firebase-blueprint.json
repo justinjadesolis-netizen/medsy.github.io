@@ -1,0 +1,105 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Primary user account settings and profile information.",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "preferences": {
+          "type": "object",
+          "properties": {
+            "notificationsEnabled": { "type": "boolean" },
+            "theme": { "type": "string" }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["displayName", "email", "createdAt"]
+    },
+    "Medication": {
+      "title": "Medication",
+      "description": "Details of a specific medication prescribed to a user.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "dosage": { "type": "string" },
+        "instructions": { "type": "string" },
+        "frequency": { "type": "string" },
+        "timesPerDay": { "type": "integer" },
+        "reminderTimes": { "type": "array", "items": { "type": "string" } },
+        "inventory": { "type": "integer" },
+        "refillThreshold": { "type": "integer" },
+        "lastRefillDate": { "type": "string", "format": "date-time" },
+        "userId": { "type": "string" },
+        "profileId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "dosage", "frequency", "userId", "profileId", "createdAt"]
+    },
+    "IntakeLog": {
+      "title": "Intake Log",
+      "description": "A record of when a medication was taken or missed.",
+      "type": "object",
+      "properties": {
+        "medicationId": { "type": "string" },
+        "medicationName": { "type": "string" },
+        "status": { "type": "string", "enum": ["taken", "missed", "skipped"] },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "scheduledTime": { "type": "string", "format": "date-time" },
+        "userId": { "type": "string" },
+        "profileId": { "type": "string" }
+      },
+      "required": ["medicationId", "medicationName", "status", "timestamp", "scheduledTime", "userId", "profileId"]
+    },
+    "JournalEntry": {
+      "title": "Journal Entry",
+      "description": "Daily health notes and symptom tracking.",
+      "type": "object",
+      "properties": {
+        "content": { "type": "string" },
+        "mood": { "type": "string" },
+        "symptoms": { "type": "array", "items": { "type": "string" } },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "userId": { "type": "string" },
+        "profileId": { "type": "string" }
+      },
+      "required": ["content", "timestamp", "userId", "profileId"]
+    },
+    "Profile": {
+      "title": "Sub Profile",
+      "description": "Secondary profiles for managing health records of family members.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "relation": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "userId", "createdAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "Global user account data."
+    },
+    "users/{userId}/profiles/{profileId}": {
+      "schema": "Profile",
+      "description": "Associated profiles for the user (e.g., self, dependents)."
+    },
+    "users/{userId}/medications/{medId}": {
+      "schema": "Medication",
+      "description": "Medications registered for a specific user."
+    },
+    "users/{userId}/logs/{logId}": {
+      "schema": "IntakeLog",
+      "description": "Intake records for adherence tracking."
+    },
+    "users/{userId}/journal/{entryId}": {
+      "schema": "JournalEntry",
+      "description": "Health journal entries."
+    }
+  }
+}

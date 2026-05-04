@@ -1,0 +1,95 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Common helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isVerified() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Validation helpers
+    function isValidUser(data) {
+      return data.keys().hasAll(['displayName', 'email', 'createdAt'])
+        && data.displayName is string && data.displayName.size() <= 100
+        && data.email is string && data.email.size() <= 100
+        && (data.createdAt == request.time || data.createdAt == resource.data.createdAt);
+    }
+
+    function isValidMedication(data) {
+      return data.keys().hasAll(['name', 'dosage', 'frequency', 'userId', 'profileId', 'createdAt'])
+        && data.name is string && data.name.size() <= 100
+        && data.dosage is string && data.dosage.size() <= 100
+        && data.userId == request.auth.uid;
+    }
+
+    function isValidLog(data) {
+      return data.keys().hasAll(['medicationId', 'medicationName', 'status', 'timestamp', 'userId', 'profileId'])
+        && data.status in ['taken', 'missed', 'skipped']
+        && data.userId == request.auth.uid;
+    }
+
+    function isValidJournal(data) {
+      return data.keys().hasAll(['content', 'timestamp', 'userId', 'profileId'])
+        && data.content is string && data.content.size() <= 5000
+        && data.userId == request.auth.uid;
+    }
+
+    function isValidProfile(data) {
+      return data.keys().hasAll(['name', 'userId', 'createdAt'])
+        && data.name is string && data.name.size() <= 100
+        && data.userId == request.auth.uid;
+    }
+
+    // Rules
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) 
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'preferences']);
+
+      match /profiles/{profileId} {
+        allow list, get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidProfile(request.resource.data);
+        allow update: if isOwner(userId) && isValidProfile(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+
+      match /medications/{medId} {
+        allow list, get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidMedication(request.resource.data);
+        allow update: if isOwner(userId) && isValidMedication(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+
+      match /logs/{logId} {
+        allow list, get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidLog(request.resource.data);
+        allow update: if isOwner(userId) && isValidLog(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+
+      match /journal/{entryId} {
+        allow list, get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidJournal(request.resource.data);
+        allow update: if isOwner(userId) && isValidJournal(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}
